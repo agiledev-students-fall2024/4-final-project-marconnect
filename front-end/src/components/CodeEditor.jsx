@@ -17,7 +17,7 @@ const CodeEditor = () => {
         const fetchCodeHistory = async () => {
             try {
                 setError(null);
-                const response = await fetch(`http://localhost:8080/code/${meetingId}`);
+                const response = await fetch(`http://localhost:8080/code/${meetingId}`); // TODO: Change to your server
                 if (!response.ok) {
                     throw new Error('Failed to fetch code history');
                 }
@@ -40,8 +40,8 @@ const CodeEditor = () => {
                 eventSourceRef.current.close();
             }
 
-            const eventSource = new EventSource(`http://localhost:8080/code/${meetingId}/stream`);
-            
+            const eventSource = new EventSource(`http://localhost:8080/code/${meetingId}/stream`); // TODO: Change to your server
+
             eventSource.onopen = () => {
                 console.log('SSE connection established');
                 setError(null);
@@ -86,7 +86,7 @@ const CodeEditor = () => {
 
     const sendCodeUpdate = async (newCode) => {
         try {
-            const response = await fetch(`http://localhost:8080/code/${meetingId}`, {
+            const response = await fetch(`http://localhost:8080/code/${meetingId}`, { // TODO: Change to your server
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

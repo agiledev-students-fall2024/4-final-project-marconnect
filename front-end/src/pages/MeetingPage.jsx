@@ -127,25 +127,25 @@ function MeetingPage() {
                     track.stop();
                 });
             }
-    
+
             // End meeting in MongoDB
-            await fetch(`http://localhost:8080/meeting/${meetingId}/end`, {
+            await fetch(`${import.meta.env.VITE_API_URL}/meeting/${meetingId}/end`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-    
+
             // Close event source if it exists
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
             }
-    
+
             // Close peer connection if it exists
             if (peerConnection.current) {
                 peerConnection.current.close();
             }
-    
+
             // Navigate to join/create page using the imported navigate function
             navigate('/joincreatemeeting');
         } catch (error) {
@@ -320,7 +320,7 @@ function MeetingPage() {
     useEffect(() => {
         (async () => {
             // handle meeting that dont exist, as user can still nav directly to this page
-            const response = await fetch(`http://localhost:8080/meeting/${meetingId}`);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/meeting/${meetingId}`); // TODO: Change to your server
             if (!response.ok) {
                 alert('The meeting you are trying to enter does not exist, or something has gone wrong while joining the meeting');
                 navigate('/login');
@@ -378,7 +378,7 @@ function MeetingPage() {
 
 
     return (
-<div className="flex meeting-container">
+        <div className="flex meeting-container">
             <div className={`flex flex-col w-full bg-grey-900`}>
                 <div className="flex bg-grey-900">
                     {/* Main content area */}
@@ -416,7 +416,7 @@ function MeetingPage() {
                             </div>
                         )}
                     </div>
-                    
+
                     {/* PiP video box */}
                     <div className="absolute top-20 right-4 w-64 h-48">
                         <VideoBox
@@ -429,10 +429,10 @@ function MeetingPage() {
                         />
                     </div>
                 </div>
-                
+
                 {/* Navigation bar */}
                 <div className="bg-gray-700 rounded-xl px-4 flex self-end justify-between items-center w-full shadow-md">
-                <div className="flex">
+                    <div className="flex">
                         <NavBarButton
                             icon={!isAudioOn ? FaMicrophoneSlash : FaMicrophone}
                             text={"Audio"}
@@ -457,7 +457,7 @@ function MeetingPage() {
 
                 </div>
             </div>
-            
+
             {/* Chat sidebar */}
             <div className={`transition-all duration-300 ${chatVisible ? 'w-3/10' : 'w-0'} h-full bg-gray-900 overflow-y-auto`}>
                 {chatVisible && <Chat meetingId={meetingId} ref={chatRef} />}

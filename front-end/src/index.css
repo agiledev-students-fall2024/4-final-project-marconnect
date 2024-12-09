@@ -30,25 +30,26 @@
 body {
   margin: 0;
   display: flex;
-  flex-direction: column;
+  place-items: center;
+  /* flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: center; */
   min-width: 320px;
   min-height: 100vh;
-  background: var(--background-gradient);
-  color: var(--text-light);
+  /* background: var(--background-gradient); */
+  /* color: var(--text-light); */
   transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* h1, h2, h3, h4, h5, h6 {
   margin: 0;
   padding: 0;
   font-weight: 700;
   text-transform: capitalize;
-}
+} */
 
 /* Typography */
-h1 {
+/* h1 {
   font-size: 4rem;
   line-height: 1.2;
   font-weight: 800;
@@ -56,9 +57,9 @@ h1 {
   text-align: center;
   text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
   letter-spacing: 1px;
-}
+} */
 
-p {
+/* p {
   font-size: 1.2rem;
   line-height: 1.8;
   max-width: 600px;
@@ -78,10 +79,10 @@ a:hover {
   color: var(--accent-color);
   text-shadow: 0 0 10px var(--accent-color);
   transform: scale(1.05);
-}
+} */
 
 /* Buttons */
-button {
+/* button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -96,9 +97,9 @@ button {
   cursor: pointer;
   transition: all var(--transition-speed) ease-in-out;
   box-shadow: var(--card-shadow);
-}
+} */
 
-button:hover {
+/* button:hover {
   background-color: var(--accent-color);
   color: #ffffff;
   transform: translateY(-3px);
@@ -113,10 +114,10 @@ button:active {
 button:focus {
   outline: none;
   box-shadow: 0 0 0 4px rgba(255, 127, 80, 0.5);
-}
+} */
 
 /* Cards */
-.card {
+/* .card {
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 16px;
@@ -126,9 +127,9 @@ button:focus {
   max-width: 400px;
   color: var(--text-light);
   transition: transform var(--transition-speed), box-shadow var(--transition-speed);
-}
+} */
 
-.card:hover {
+/* .card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
@@ -142,7 +143,7 @@ button:focus {
 .card p {
   font-size: 1rem;
   line-height: 1.6;
-}
+} */
 
 /* Animations */
 @keyframes fadeIn {
@@ -150,6 +151,7 @@ button:focus {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -157,20 +159,27 @@ button:focus {
 }
 
 @keyframes glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 10px var(--primary-color);
   }
+
   50% {
     box-shadow: 0 0 20px var(--secondary-color);
   }
 }
 
-body, h1, p, button, .card {
+body,
+h1,
+p,
+button,
+.card {
   animation: fadeIn var(--transition-speed) ease-in-out;
 }
 
 /* Utility Classes */
-.rounded-full {
+/* .rounded-full {
   border-radius: 9999px;
 }
 
@@ -190,7 +199,7 @@ body, h1, p, button, .card {
   -webkit-background-clip: text;
   color: transparent;
   animation: glow 2s infinite alternate;
-}
+} */
 
 /* Responsive Design */
 @media (max-width: 768px) {

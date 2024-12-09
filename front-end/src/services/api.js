@@ -86,7 +86,7 @@ export async function deleteWhiteboard(wbName) {
 export async function getMeeting(meetingId) {
     if (meetingId.trim()) {
         try {
-            const response = await fetch(`http://localhost:8080/meeting/${meetingId}`); // FIXME: environmentize the host, or use api.js
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/meeting/${meetingId}`); // environmentize the host, or use api.js
             if (response.ok) {
                 return response
             } else {
