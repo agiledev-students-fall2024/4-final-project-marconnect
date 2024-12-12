@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaCommentDots, FaUser, FaPen, FaCode, FaDoorClosed, FaDoorOpen, FaMeetup } from 'react-icons/fa';
 import { MdScreenShare } from 'react-icons/md';
 import VideoBox from "../components/VideoBox";
@@ -18,6 +18,7 @@ function MeetingPage() {
 
     const jwtToken = localStorage.getItem('token');
     const [isLoggedIn, setIsLoggedIn] = React.useState(jwtToken && true);
+    const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(true);
 
     const [dataStreamingMessages, setDataStreamingMessages] = React.useState([]);
 
@@ -72,6 +73,14 @@ function MeetingPage() {
         setIsAudioOn(!isAudioOn);
     };
 
+    useEffect(() => {
+        if (remoteStream) {
+            remoteStream.getVideoTracks().forEach(track => {
+                track.enabled = remoteVideoEnabled;
+            });
+        }
+    }, [remoteStream, remoteVideoEnabled]);
+
     const toggleVideo = () => {
         if (userStream) {
             const videoTracks = userStream.getVideoTracks();
@@ -81,14 +90,14 @@ function MeetingPage() {
                 track.enabled = !isCameraOn;
                 console.log(`Track ${track.label} enabled: ${track.enabled}`);
             });
-
+    
             sendDataToMeetingRoom(meetingId, 'video', {
                 type: 'video-visibility',
                 newVisibility: !isCameraOn,
                 clientId: RTCClientId,
             });
         }
-
+    
         setIsCameraOn(!isCameraOn);
     };
 
@@ -424,11 +433,8 @@ function MeetingPage() {
                                 break;
             
                             case 'video-visibility':
-                                if (remoteStream && typeof message.data.newVisibility === 'boolean') {
-                                    remoteStream.getVideoTracks().forEach(track => {
-                                        track.enabled = message.data.newVisibility;
-                                    });
-                                    setIsOtherCameraOn(message.data.newVisibility);
+                                if (typeof message.data.newVisibility === 'boolean') {
+                                    setRemoteVideoEnabled(message.data.newVisibility);
                                 }
                                 break;
             
@@ -533,13 +539,13 @@ function MeetingPage() {
                                <div className="h-[90vh] w-full relative"> {/* Added relative positioning */}
                                    {videoVisible && (
                                        connected ? (
-                                           <VideoBox
-                                               mediaSource={remoteStream}
-                                               displayName={"Other guy"}
-                                               videoOn={isOtherCameraOn}
-                                               audioOn={isOtherAudioOn}
-                                               flipHorizontal={true}
-                                           />
+                                            <VideoBox
+                                                mediaSource={remoteStream}
+                                                displayName={"Other guy"}
+                                                videoOn={remoteVideoEnabled}
+                                                audioOn={isOtherAudioOn}
+                                                flipHorizontal={true}
+                                            />
                                        ) : (
                                            <div className="flex flex-col justify-center items-center h-full w-full text-white">
                                                <p>No one is connected.</p>
