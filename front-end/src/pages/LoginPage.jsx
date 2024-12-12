@@ -28,6 +28,8 @@ const LoginPage = () => {
             const serializedObj = JSON.stringify(token, null, 0) // a JSON string representation of the object
             localStorage.setItem('token', token);
             var userData = jwtDecode(token);
+            localStorage.setItem('UUID', userData['id'])
+            console.log(userData);
             localStorage.setItem('username', userData['username']);
             if (response.ok) {
                 navigate('/joincreatemeeting');

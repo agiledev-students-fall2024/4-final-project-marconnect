@@ -7,21 +7,32 @@ const Meeting = require('../models/Meeting');
 // Get list of past meetings
 router.get('/past/list', async (req, res) => {
     try {
-        const meetings = await Meeting.find()
+        const userId = req.headers.userid;
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        const meetings = await Meeting.find({
+            $or: [
+                { createdBy: userId },
+                { participants: userId }
+            ]
+        })
             .sort({ createdAt: -1 }) // Sort by most recent first
             .limit(10) // Limit to last 10 meetings
             .select('meetingId createdAt codeHistory status') // Select specific fields
             .exec();
 
-        const formattedMeetings = meetings.map(meeting => ({
-            meetingId: meeting.meetingId,
-            createdAt: meeting.createdAt,
-            status: meeting.status,
-            codeEditor: meeting.codeHistory?.length > 0 ? {
-                language: meeting.codeHistory[meeting.codeHistory.length - 1].language,
-                lastUpdate: meeting.codeHistory[meeting.codeHistory.length - 1].timestamp
-            } : null
-        }));
+            const formattedMeetings = meetings.map(meeting => ({
+                meetingId: meeting.meetingId,
+                createdAt: meeting.createdAt,
+                status: meeting.status,
+                isCreator: meeting.createdBy === userId,
+                codeEditor: meeting.codeHistory?.length > 0 ? {
+                    language: meeting.codeHistory[meeting.codeHistory.length - 1].language,
+                    lastUpdate: meeting.codeHistory[meeting.codeHistory.length - 1].timestamp
+                } : null
+            }));
 
         res.json(formattedMeetings);
     } catch (error) {
@@ -33,14 +44,19 @@ router.get('/past/list', async (req, res) => {
 // Create new meeting
 router.post('/', async (req, res) => {
     try {
+        const userId = req.headers.userid;
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
         // Generate a random 9-digit meeting ID
         const meetingId = Math.random().toString().slice(2, 11);
        
         // Create meeting in MongoDB
         const meeting = new Meeting({
             meetingId,
+            createdBy: userId,
             status: 'active',
-            participants: [],
+            participants: [userId],
             codeHistory: [],
             messages: []  // Initialize empty messages array
         });
@@ -50,7 +66,8 @@ router.post('/', async (req, res) => {
             meetingId: savedMeeting.meetingId,
             id: savedMeeting.id,
             createdAt: savedMeeting.createdAt,
-            status: savedMeeting.status
+            status: savedMeeting.status,
+            createdBy: savedMeeting.createdBy
         });
     } catch (error) {
         console.error('Error creating meeting:', error);
@@ -66,16 +83,24 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const { id: meetingId } = req.params;
+        const userId = req.headers.userid;
         const meeting = await Meeting.findOne({ meetingId });
         
         if (!meeting) {
             return res.status(404).json({ error: 'Meeting not found' });
         }
 
+        if (!meeting.participants.includes(userId)) {
+            meeting.participants.push(userId);
+            await meeting.save();
+        }
+
         res.json({
             meetingId: meeting.meetingId,
             createdAt: meeting.createdAt,
             status: meeting.status,
+            createdBy: meeting.createdBy,
+            isCreator: meeting.createdBy === userId,
             codeEditor: meeting.codeHistory?.length > 0 ? {
                 language: meeting.codeHistory[meeting.codeHistory.length - 1].language,
                 code: meeting.codeHistory[meeting.codeHistory.length - 1].code
@@ -105,7 +130,6 @@ router.post('/:id/end', async (req, res) => {
     } catch (error) {
         console.error('Error ending meeting:', error);
         res.status(500).json({ error: 'Failed to end meeting' });
-
     }
 });
 
