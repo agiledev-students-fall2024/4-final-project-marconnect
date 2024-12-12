@@ -536,52 +536,68 @@ function MeetingPage() {
                        <div className={`flex flex-col w-full bg-grey-900`}>
                            <div className="flex bg-grey-900">
                                {/* Main content area */}
-                               <div className="h-[90vh] w-full relative"> {/* Added relative positioning */}
-                                   {videoVisible && (
-                                       connected ? (
+                               <div className="h-[90vh] w-full relative">
+                                {/* Main content area */}
+                                <div className="absolute inset-0">
+                                    {videoVisible && (
+                                        connected ? (
                                             <VideoBox
                                                 mediaSource={remoteStream}
-                                                displayName={"Other guy"}
+                                                displayName="Other Person"
                                                 videoOn={remoteVideoEnabled}
                                                 audioOn={isOtherAudioOn}
                                                 flipHorizontal={true}
                                             />
-                                       ) : (
-                                           <div className="flex flex-col justify-center items-center h-full w-full text-white">
-                                               <p>No one is connected.</p>
-                                               <p>Invite others using this link:</p>
-                                               <p>
-                                                   <a href={`http://localhost:3000/meetings/${meetingId}`} className="text-blue-500 underline">
-                                                       http://localhost:3000/meetings/{meetingId}
-                                                   </a>
-                                               </p>
-                                           </div>
-                                       )
-                                   )}
-                                   {/* Render CodeEditor and Whiteboard in the same space as video */}
-                                   {editorVisible && (
-                                       <div className="absolute inset-0">
-                                           <CodeEditor />
-                                       </div>
-                                   )}
-                                   {whiteboardVisible && (
-                                       <div className="absolute inset-0">
-                                           <Whiteboard roomId={meetingId} />
-                                       </div>
-                                   )}
-                               </div>
-           
-                               {/* PiP video box */}
-                               <div className="absolute top-20 right-4 w-64 h-48">
-                                   <VideoBox
-                                       mediaSource={videoVisible ? userStream : remoteStream}
-                                       displayName={videoVisible ? "You" : "Other guy"}
-                                       videoOn={videoVisible ? isCameraOn : isOtherCameraOn}
-                                       audioOn={videoVisible ? false : isOtherAudioOn}
-                                       flipHorizontal={true}
-                                       collapsible={true}
-                                   />
-                               </div>
+                                        ) : (
+                                            <div className="flex flex-col justify-center items-center h-full w-full text-white">
+                                                <p>No one is connected.</p>
+                                                <p>Invite others using this link:</p>
+                                                <p>
+                                                    <a href={`http://localhost:3000/meetings/${meetingId}`} className="text-blue-500 underline">
+                                                        http://localhost:3000/meetings/{meetingId}
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        )
+                                    )}
+                                    {editorVisible && (
+                                        <div className="absolute inset-0">
+                                            <CodeEditor />
+                                        </div>
+                                    )}
+                                    {whiteboardVisible && (
+                                        <div className="absolute inset-0">
+                                            <Whiteboard roomId={meetingId} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* PiP video box */}
+                                <div className="absolute top-4 right-4 w-64 h-48">
+                                    <VideoBox
+                                        mediaSource={userStream}
+                                        displayName="You"
+                                        videoOn={isCameraOn}
+                                        audioOn={false}
+                                        flipHorizontal={true}
+                                        collapsible={true}
+                                    />
+                                </div>
+
+                                {/* Remote video */}
+                                {!videoVisible && connected && (
+                                    <div className="absolute top-4 left-4 w-64 h-48">
+                                        <VideoBox
+                                            mediaSource={remoteStream}
+                                            displayName="Other Person"
+                                            videoOn={remoteVideoEnabled}
+                                            audioOn={isOtherAudioOn}
+                                            flipHorizontal={true}
+                                            collapsible={true}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                            </div>
            
                            {/* Navigation bar */}
