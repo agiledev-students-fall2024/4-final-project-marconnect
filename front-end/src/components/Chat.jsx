@@ -19,8 +19,29 @@ const Chat = React.forwardRef((props, ref) => {
             text: message.data,
             timestamp: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
-        setMessages((prevMessages) => [...prevMessages, ...newMessages]);
+        setMessages((prevMessages) => {
+            const uniqueMessages = newMessages.filter((newMessage) =>
+                !prevMessages.some((prevMessage) =>
+                    prevMessage.username === newMessage.username &&
+                    prevMessage.text === newMessage.text &&
+                    prevMessage.timestamp === newMessage.timestamp
+                )
+            );
+            return [...prevMessages, ...uniqueMessages];
+        });
     }
+
+    // const loadMessages = (loadedData) => {
+    //     const filteredData = loadedData.filter((message) => message.service === "chat").sort(
+    //         (a, b) => a.timestamp - b.timestamp
+    //     );
+    //     const newMessages = filteredData.map((message) => ({
+    //         username: message.username ? message.username : "user1",
+    //         text: message.data,
+    //         timestamp: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    //     }));
+    //     setMessages(newMessages);
+    // }
 
     // const loadMessages = (loadedData) => {
     //     const filteredData = loadedData.filter((message) => message.service === "chat").sort(
