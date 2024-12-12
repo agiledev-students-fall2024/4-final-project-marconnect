@@ -47,6 +47,8 @@ function MeetingPage() {
     const [screenshareVisible, setScreenshareVisible] = React.useState(false);
     const [videoVisible, setVideoVisible] = React.useState(true);
 
+    const candidateQueue = useRef([]);
+
 
 
     const chatRef = useRef(null);
@@ -131,11 +133,15 @@ function MeetingPage() {
                 });
             }
 
+            const userId = localStorage.getItem('userId');
+
             // End meeting in MongoDB
             await fetch(`${import.meta.env.VITE_API_URL}/meeting/${meetingId}/end`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'UserId': userId
                 }
             });
 
@@ -193,6 +199,7 @@ function MeetingPage() {
 
         // Set up remote stream handling
         const _remoteStream = new MediaStream();
+        // setRemoteStream(_remoteStream);
         peerConnection.current.ontrack = (event) => {
             console.log('Received remote track:', event.track.kind);
             _remoteStream.addTrack(event.track);
@@ -233,90 +240,226 @@ function MeetingPage() {
 
 
 
+    // const initializeFirebase = async () => {
+    //     const existingMessages = await getAllMessages(meetingId);
+    //     setDataStreamingMessages(existingMessages);
+    //     const unsub = listenForNewMessages(meetingId, async (message) => {
+    //         if (message) {
+    //             const lastMessage = message[message.length - 1];
+    //             // switch case for different services
+    //             if (lastMessage.service === 'code') {
+    //                 // TODO: handle new data from remote code editor
+    //             } else if (lastMessage.service == 'chat') {
+    //                 console.log(lastMessage);
+    //                 if (chatRef.current) {
+    //                     chatRef.current.loadMessages(message);
+    //                 }
+    //             } else if (lastMessage.service === 'whiteboard') {
+    //                 // TODO: handle new whiteboard data
+    //             } else if (lastMessage.service === 'screenshare') {
+    //                 // TODO: handle new screenshare data
+    //             }
+    //             if (lastMessage.service === 'video') {
+    //                 if (lastMessage.data.type === 'candidate') {
+    //                     await peerConnection.current.addIceCandidate(lastMessage.data.candidate);
+    //                 } else if (lastMessage.data.type === 'offer') {
+    //                     if (lastMessage.data.clientId !== RTCClientId) {
+    //                         console.log('received offer');
+    //                         if (peerConnection.current.signalingState === "stable") {
+    //                             await peerConnection.current.setRemoteDescription(lastMessage.data.offer);
+    //                             const answer = await peerConnection.current.createAnswer();
+    //                             await peerConnection.current.setLocalDescription(answer);
+    //                             sendDataToMeetingRoom(meetingId, 'video', {
+    //                                 type: 'answer',
+    //                                 answer: answer,
+    //                                 clientId: RTCClientId,
+    //                             });
+    //                         } else {
+    //                             console.error("Unexpected signaling state:", peerConnection.current.signalingState);
+    //                         }
+
+    //                         // also send audio and video visibility
+    //                         sendDataToMeetingRoom(meetingId, 'video', {
+    //                             type: 'video-visibility',
+    //                             newVisibility: !isCameraOn,
+    //                             clientId: RTCClientId,
+    //                         });
+
+    //                         sendDataToMeetingRoom(meetingId, 'video', {
+    //                             type: 'audio-visibility',
+    //                             newVisibility: !isAudioOn,
+    //                             clientId: RTCClientId,
+    //                         });
+
+    //                     }
+    //                 } else if (lastMessage.data.type === 'answer' && peerConnection.current.signalingState !== "stable") {
+    //                     console.log('received answer');
+    //                     await peerConnection.current.setRemoteDescription(lastMessage.data.answer);
+    //                     console.log('set remote description');
+    //                 } else if (lastMessage.data.type === 'video-visibility' && lastMessage.data.clientId !== RTCClientId) {
+    //                     console.log('received video visibility change');
+    //                     if (remoteStream) {
+    //                         const videoTracks = remoteStream.getVideoTracks();
+    //                         videoTracks.forEach(track => {
+    //                             track.enabled = message.data.newVisibility;
+    //                             console.log(`Remote track ${track.label} enabled: ${track.enabled}`);
+    //                         });
+    //                     }
+    //                     setIsOtherCameraOn(lastMessage.data.newVisibility);
+    //                 } else if (lastMessage.data.type === 'audio-visibility' && lastMessage.data.clientId !== RTCClientId) {
+    //                     console.log('received audio visibility change');
+    //                     if (remoteStream) {
+    //                         const audioTracks = remoteStream.getAudioTracks();
+    //                         audioTracks.forEach(track => {
+    //                             track.enabled = message.data.newVisibility;
+    //                             console.log(`Remote track ${track.label} enabled: ${track.enabled}`);
+    //                         });
+    //                     }
+    //                     setIsOtherAudioOn(lastMessage.data.newVisibility);
+    //                 }
+    //             }
+    //             setDataStreamingMessages(prevMessages => [...prevMessages, message]);
+    //         }
+    //     }, true); // true to only get new messages vs getting all messsages
+    //     return [unsub, existingMessages];
+
+    // }
+
     const initializeFirebase = async () => {
         const existingMessages = await getAllMessages(meetingId);
         setDataStreamingMessages(existingMessages);
-        const unsub = listenForNewMessages(meetingId, async (message) => {
-            if (message) {
-                const lastMessage = message[message.length - 1];
-                // switch case for different services
-                if (lastMessage.service === 'code') {
-                    // TODO: handle new data from remote code editor
-                } else if (lastMessage.service == 'chat') {
-                    console.log(lastMessage);
-                    if (chatRef.current) {
-                        chatRef.current.loadMessages(message);
-                    }
-                } else if (lastMessage.service === 'whiteboard') {
-                    // TODO: handle new whiteboard data
-                } else if (lastMessage.service === 'screenshare') {
-                    // TODO: handle new screenshare data
+        
+        const handleMessage = async (message) => {
+            if (!message) return;
+    
+            if (message.service === 'code') {
+                // TODO: handle new data from remote code editor
+            } else if (message.service === 'chat') {
+                if (chatRef.current) {
+                    const messageData = Array.isArray(message) ? message : [message];
+                    chatRef.current.loadMessages(messageData);
                 }
-                if (lastMessage.service === 'video') {
-                    if (lastMessage.data.type === 'candidate') {
-                        await peerConnection.current.addIceCandidate(lastMessage.data.candidate);
-                    } else if (lastMessage.data.type === 'offer') {
-                        if (lastMessage.data.clientId !== RTCClientId) {
-                            console.log('received offer');
-                            if (peerConnection.current.signalingState === "stable") {
-                                await peerConnection.current.setRemoteDescription(lastMessage.data.offer);
+            } else if (message.service === 'whiteboard') {
+                // TODO: handle new whiteboard data
+            } else if (message.service === 'screenshare') {
+                // TODO: handle new screenshare data
+            } else if (message.service === 'video') {
+                if (message.data?.clientId === RTCClientId) return; // Ignore own messages
+    
+                try {
+                    switch (message.data?.type) {
+                        case 'candidate':
+                            try {
+                                if (peerConnection.current?.remoteDescription) {
+                                    await peerConnection.current.addIceCandidate(new RTCIceCandidate(message.data.candidate));
+                                } else if (candidateQueue.current) {
+                                    candidateQueue.current.push(message.data.candidate);
+                                }
+                            } catch (e) {
+                                console.warn('Error handling ICE candidate:', e);
+                            }
+                            break;
+        
+                        case 'offer':
+                            console.log('Received offer, state:', peerConnection.current?.signalingState);
+                            try {
+                                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(message.data.offer));
                                 const answer = await peerConnection.current.createAnswer();
                                 await peerConnection.current.setLocalDescription(answer);
+                                
+                                // Process any queued candidates
+                                if (candidateQueue.current?.length > 0) {
+                                    for (const candidate of candidateQueue.current) {
+                                        try {
+                                            await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+                                        } catch (e) {
+                                            console.warn('Error adding queued candidate:', e);
+                                        }
+                                    }
+                                    candidateQueue.current = [];
+                                }
+        
                                 sendDataToMeetingRoom(meetingId, 'video', {
                                     type: 'answer',
                                     answer: answer,
                                     clientId: RTCClientId,
                                 });
-                            } else {
-                                console.error("Unexpected signaling state:", peerConnection.current.signalingState);
+        
+                                // Send current video/audio state
+                                sendDataToMeetingRoom(meetingId, 'video', {
+                                    type: 'video-visibility',
+                                    newVisibility: isCameraOn,
+                                    clientId: RTCClientId,
+                                });
+        
+                                sendDataToMeetingRoom(meetingId, 'video', {
+                                    type: 'audio-visibility',
+                                    newVisibility: isAudioOn,
+                                    clientId: RTCClientId,
+                                });
+                            } catch (e) {
+                                console.error('Error handling offer:', e);
                             }
-
-                            // also send audio and video visibility
-                            sendDataToMeetingRoom(meetingId, 'video', {
-                                type: 'video-visibility',
-                                newVisibility: !isCameraOn,
-                                clientId: RTCClientId,
-                            });
-
-                            sendDataToMeetingRoom(meetingId, 'video', {
-                                type: 'audio-visibility',
-                                newVisibility: !isAudioOn,
-                                clientId: RTCClientId,
-                            });
-
+                            break;
+    
+                            case 'answer':
+                                console.log('Received answer, state:', peerConnection.current?.signalingState);
+                                try {
+                                    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(message.data.answer));
+                                    
+                                    // Process any queued candidates
+                                    if (candidateQueue.current?.length > 0) {
+                                        for (const candidate of candidateQueue.current) {
+                                            try {
+                                                await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+                                            } catch (e) {
+                                                console.warn('Error adding queued candidate:', e);
+                                            }
+                                        }
+                                        candidateQueue.current = [];
+                                    }
+                                } catch (e) {
+                                    console.error('Error handling answer:', e);
+                                }
+                                break;
+            
+                            case 'video-visibility':
+                                if (remoteStream && typeof message.data.newVisibility === 'boolean') {
+                                    remoteStream.getVideoTracks().forEach(track => {
+                                        track.enabled = message.data.newVisibility;
+                                    });
+                                    setIsOtherCameraOn(message.data.newVisibility);
+                                }
+                                break;
+            
+                            case 'audio-visibility':
+                                if (remoteStream && typeof message.data.newVisibility === 'boolean') {
+                                    remoteStream.getAudioTracks().forEach(track => {
+                                        track.enabled = message.data.newVisibility;
+                                    });
+                                    setIsOtherAudioOn(message.data.newVisibility);
+                                }
+                                break;
                         }
-                    } else if (lastMessage.data.type === 'answer' && peerConnection.current.signalingState !== "stable") {
-                        console.log('received answer');
-                        await peerConnection.current.setRemoteDescription(lastMessage.data.answer);
-                        console.log('set remote description');
-                    } else if (lastMessage.data.type === 'video-visibility' && lastMessage.data.clientId !== RTCClientId) {
-                        console.log('received video visibility change');
-                        if (remoteStream) {
-                            const videoTracks = remoteStream.getVideoTracks();
-                            videoTracks.forEach(track => {
-                                track.enabled = message.data.newVisibility;
-                                console.log(`Remote track ${track.label} enabled: ${track.enabled}`);
-                            });
-                        }
-                        setIsOtherCameraOn(lastMessage.data.newVisibility);
-                    } else if (lastMessage.data.type === 'audio-visibility' && lastMessage.data.clientId !== RTCClientId) {
-                        console.log('received audio visibility change');
-                        if (remoteStream) {
-                            const audioTracks = remoteStream.getAudioTracks();
-                            audioTracks.forEach(track => {
-                                track.enabled = message.data.newVisibility;
-                                console.log(`Remote track ${track.label} enabled: ${track.enabled}`);
-                            });
-                        }
-                        setIsOtherAudioOn(lastMessage.data.newVisibility);
-                    }
+                } catch (error) {
+                    console.error('Error handling video message:', error);
                 }
-                setDataStreamingMessages(prevMessages => [...prevMessages, message]);
             }
-        }, true); // true to only get new messages vs getting all messsages
+    
+            setDataStreamingMessages(prevMessages => [...prevMessages, message]);
+        };
+    
+        const unsub = listenForNewMessages(meetingId, async (message) => {
+            if (Array.isArray(message)) {
+                const lastMessage = message[message.length - 1];
+                await handleMessage(lastMessage);
+            } else {
+                await handleMessage(message);
+            }
+        }, true);
+    
         return [unsub, existingMessages];
-
-    }
+    };
 
 
 

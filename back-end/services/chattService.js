@@ -25,7 +25,8 @@ class ChatService {
     }
     
     static async getChatHistory(meetingId) {
-        return await Chat.findOne({ meetingId });
+        const chat =  await Chat.findOne({ meetingId });
+        return chat ? chat.messages : [];
     }
 }
 

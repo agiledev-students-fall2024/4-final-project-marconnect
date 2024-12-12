@@ -22,6 +22,7 @@ const JoinCreateMeetingPage = () => {
   const jwtToken = localStorage.getItem("token");
   const username = localStorage.getItem("username");
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(jwtToken));
+  const userId = localStorage.getItem('UUID');
 
   useEffect(() => {
     if (!jwtToken) {
@@ -34,6 +35,7 @@ const JoinCreateMeetingPage = () => {
     // Clear all auth-related items from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('username');
+    localStorage.removeItem('UUID');
     setIsLoggedIn(false);
     navigate('/login');
   };
@@ -44,7 +46,8 @@ const JoinCreateMeetingPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`
+          'Authorization': `Bearer ${jwtToken}`,
+          'UserId': userId
         }
       });
       if (!response.ok) {
@@ -64,7 +67,8 @@ const JoinCreateMeetingPage = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/meeting/${meetingId}`, {
         headers: {
-          'Authorization': `Bearer ${jwtToken}`
+          'Authorization': `Bearer ${jwtToken}`,
+          'UserId': userId
         }
       });
       if (response.ok) {
@@ -82,7 +86,8 @@ const JoinCreateMeetingPage = () => {
       setError(null);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/meeting/past/list`, {
         headers: {
-          'Authorization': `Bearer ${jwtToken}`
+          'Authorization': `Bearer ${jwtToken}`,
+          'UserId': userId
         }
       });
       if (!response.ok) {

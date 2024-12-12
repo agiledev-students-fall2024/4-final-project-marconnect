@@ -11,24 +11,57 @@ const Chat = React.forwardRef((props, ref) => {
     const textElement = useRef();
 
     const loadMessages = (loadedData) => {
-        loadedData = loadedData.filter((message) => message.service === "chat").sort(
+        const filteredData = loadedData.filter((message) => message.service === "chat").sort(
             (a, b) => a.timestamp - b.timestamp
         );
-        const messageList = loadedData.map((message) => {return {username: message.username ? message.username : "user1", text: message.data, timestamp: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}});
-        setMessages(messageList);
+        const newMessages = filteredData.map((message) => ({
+            username: message.username ? message.username : "user1",
+            text: message.data,
+            timestamp: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        setMessages((prevMessages) => [...prevMessages, ...newMessages]);
     }
+
+    // const loadMessages = (loadedData) => {
+    //     const filteredData = loadedData.filter((message) => message.service === "chat").sort(
+    //         (a, b) => a.timestamp - b.timestamp
+    //     );
+    //     const newMessages = filteredData.map((message) => ({
+    //         username: message.username ? message.username : "user1",
+    //         text: message.data,
+    //         timestamp: new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    //     }));
+    //     setMessages(newMessages);
+    // }
+
+    // const sendMessage = () => {
+    //     const newMessage = textElement.current.value;
+    //     if (newMessage.trim() == "") {
+    //         return;
+    //     }
+    //     let username = localStorage.getItem("username") ? localStorage.getItem("username") : "user1";
+
+    //     const newMessageData = { username: username, text: newMessage, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    //     setMessages(
+    //         [...messages, newMessageData]
+    //     )
+    //     sendDataToMeetingRoom(meetingId, "chat", newMessage, username);
+    //     textElement.current.value = "";
+    //     setShowEmojiPicker(false);
+    // }
 
     const sendMessage = () => {
         const newMessage = textElement.current.value;
-        if (newMessage.trim() == "") {
+        if (newMessage.trim() === "") {
             return;
         }
         let username = localStorage.getItem("username") ? localStorage.getItem("username") : "user1";
-
-        const newMessageData = { user: username, text: newMessage, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        setMessages(
-            [...messages, newMessageData]
-        )
+    
+        const newMessageData = {
+            username: username,
+            text: newMessage,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
         sendDataToMeetingRoom(meetingId, "chat", newMessage, username);
         textElement.current.value = "";
         setShowEmojiPicker(false);
