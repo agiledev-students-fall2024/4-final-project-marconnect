@@ -45,7 +45,6 @@ jobs:
           sudo nginx -t
           sudo systemctl reload nginx
           sudo pm2 reload all
-          sudo cat $(pm2 info <app_name_or_id> | grep 'log path' | awk '{print $4}')
 
     - name: Deploy Frontend to DigitalOcean Droplet
       uses: appleboy/ssh-action@master
