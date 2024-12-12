@@ -18,7 +18,6 @@ function MeetingPage() {
 
     const jwtToken = localStorage.getItem('token');
     const [isLoggedIn, setIsLoggedIn] = React.useState(jwtToken && true);
-    const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(true);
 
     const [dataStreamingMessages, setDataStreamingMessages] = React.useState([]);
 
@@ -32,7 +31,7 @@ function MeetingPage() {
 
     // other
     const [isOtherAudioOn, setIsOtherAudioOn] = React.useState(false);
-    const [isOtherCameraOn, setIsOtherCameraOn] = React.useState(false);
+    const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(true);
 
     const [userStream, setUserStream] = React.useState(null);
     const [remoteStream, setRemoteStream] = React.useState(null);
@@ -90,14 +89,14 @@ function MeetingPage() {
                 track.enabled = !isCameraOn;
                 console.log(`Track ${track.label} enabled: ${track.enabled}`);
             });
-    
+
             sendDataToMeetingRoom(meetingId, 'video', {
                 type: 'video-visibility',
                 newVisibility: !isCameraOn,
                 clientId: RTCClientId,
             });
         }
-    
+
         setIsCameraOn(!isCameraOn);
     };
 
@@ -337,10 +336,10 @@ function MeetingPage() {
     const initializeFirebase = async () => {
         const existingMessages = await getAllMessages(meetingId);
         setDataStreamingMessages(existingMessages);
-        
+
         const handleMessage = async (message) => {
             if (!message) return;
-    
+
             if (message.service === 'code') {
                 // TODO: handle new data from remote code editor
             } else if (message.service === 'chat') {
@@ -354,7 +353,7 @@ function MeetingPage() {
                 // TODO: handle new screenshare data
             } else if (message.service === 'video') {
                 if (message.data?.clientId === RTCClientId) return; // Ignore own messages
-    
+
                 try {
                     switch (message.data?.type) {
                         case 'candidate':
@@ -368,14 +367,14 @@ function MeetingPage() {
                                 console.warn('Error handling ICE candidate:', e);
                             }
                             break;
-        
+
                         case 'offer':
                             console.log('Received offer, state:', peerConnection.current?.signalingState);
                             try {
                                 await peerConnection.current.setRemoteDescription(new RTCSessionDescription(message.data.offer));
                                 const answer = await peerConnection.current.createAnswer();
                                 await peerConnection.current.setLocalDescription(answer);
-                                
+
                                 // Process any queued candidates
                                 if (candidateQueue.current?.length > 0) {
                                     for (const candidate of candidateQueue.current) {
@@ -387,20 +386,20 @@ function MeetingPage() {
                                     }
                                     candidateQueue.current = [];
                                 }
-        
+
                                 sendDataToMeetingRoom(meetingId, 'video', {
                                     type: 'answer',
                                     answer: answer,
                                     clientId: RTCClientId,
                                 });
-        
+
                                 // Send current video/audio state
                                 sendDataToMeetingRoom(meetingId, 'video', {
                                     type: 'video-visibility',
                                     newVisibility: isCameraOn,
                                     clientId: RTCClientId,
                                 });
-        
+
                                 sendDataToMeetingRoom(meetingId, 'video', {
                                     type: 'audio-visibility',
                                     newVisibility: isAudioOn,
@@ -410,51 +409,51 @@ function MeetingPage() {
                                 console.error('Error handling offer:', e);
                             }
                             break;
-    
-                            case 'answer':
-                                console.log('Received answer, state:', peerConnection.current?.signalingState);
-                                try {
-                                    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(message.data.answer));
-                                    
-                                    // Process any queued candidates
-                                    if (candidateQueue.current?.length > 0) {
-                                        for (const candidate of candidateQueue.current) {
-                                            try {
-                                                await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-                                            } catch (e) {
-                                                console.warn('Error adding queued candidate:', e);
-                                            }
+
+                        case 'answer':
+                            console.log('Received answer, state:', peerConnection.current?.signalingState);
+                            try {
+                                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(message.data.answer));
+
+                                // Process any queued candidates
+                                if (candidateQueue.current?.length > 0) {
+                                    for (const candidate of candidateQueue.current) {
+                                        try {
+                                            await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+                                        } catch (e) {
+                                            console.warn('Error adding queued candidate:', e);
                                         }
-                                        candidateQueue.current = [];
                                     }
-                                } catch (e) {
-                                    console.error('Error handling answer:', e);
+                                    candidateQueue.current = [];
                                 }
-                                break;
-            
-                            case 'video-visibility':
-                                if (typeof message.data.newVisibility === 'boolean') {
-                                    setRemoteVideoEnabled(message.data.newVisibility);
-                                }
-                                break;
-            
-                            case 'audio-visibility':
-                                if (remoteStream && typeof message.data.newVisibility === 'boolean') {
-                                    remoteStream.getAudioTracks().forEach(track => {
-                                        track.enabled = message.data.newVisibility;
-                                    });
-                                    setIsOtherAudioOn(message.data.newVisibility);
-                                }
-                                break;
-                        }
+                            } catch (e) {
+                                console.error('Error handling answer:', e);
+                            }
+                            break;
+
+                        case 'video-visibility':
+                            if (typeof message.data.newVisibility === 'boolean') {
+                                setRemoteVideoEnabled(message.data.newVisibility);
+                            }
+                            break;
+
+                        case 'audio-visibility':
+                            if (remoteStream && typeof message.data.newVisibility === 'boolean') {
+                                remoteStream.getAudioTracks().forEach(track => {
+                                    track.enabled = message.data.newVisibility;
+                                });
+                                setIsOtherAudioOn(message.data.newVisibility);
+                            }
+                            break;
+                    }
                 } catch (error) {
                     console.error('Error handling video message:', error);
                 }
             }
-    
+
             setDataStreamingMessages(prevMessages => [...prevMessages, message]);
         };
-    
+
         const unsub = listenForNewMessages(meetingId, async (message) => {
             if (Array.isArray(message)) {
                 const lastMessage = message[message.length - 1];
@@ -463,7 +462,7 @@ function MeetingPage() {
                 await handleMessage(message);
             }
         }, true);
-    
+
         return [unsub, existingMessages];
     };
 
@@ -532,110 +531,94 @@ function MeetingPage() {
     return (
         <>
             {isLoggedIn ? (
-                       <div className="flex meeting-container">
-                       <div className={`flex flex-col w-full bg-grey-900`}>
-                           <div className="flex bg-grey-900">
-                               {/* Main content area */}
-                               <div className="h-[90vh] w-full relative">
-                                {/* Main content area */}
-                                <div className="absolute inset-0">
-                                    {videoVisible && (
-                                        connected ? (
-                                            <VideoBox
-                                                mediaSource={remoteStream}
-                                                displayName="Other Person"
-                                                videoOn={remoteVideoEnabled}
-                                                audioOn={isOtherAudioOn}
-                                                flipHorizontal={true}
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col justify-center items-center h-full w-full text-white">
-                                                <p>No one is connected.</p>
-                                                <p>Invite others using this link:</p>
-                                                <p>
-                                                    <a href={`http://localhost:3000/meetings/${meetingId}`} className="text-blue-500 underline">
-                                                        http://localhost:3000/meetings/{meetingId}
-                                                    </a>
-                                                </p>
-                                            </div>
-                                        )
-                                    )}
-                                    {editorVisible && (
-                                        <div className="absolute inset-0">
-                                            <CodeEditor />
-                                        </div>
-                                    )}
-                                    {whiteboardVisible && (
-                                        <div className="absolute inset-0">
-                                            <Whiteboard roomId={meetingId} />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* PiP video box */}
-                                <div className="absolute top-4 right-4 w-64 h-48">
-                                    <VideoBox
-                                        mediaSource={userStream}
-                                        displayName="You"
-                                        videoOn={isCameraOn}
-                                        audioOn={false}
-                                        flipHorizontal={true}
-                                        collapsible={true}
-                                    />
-                                </div>
-
-                                {/* Remote video */}
-                                {!videoVisible && connected && (
-                                    <div className="absolute top-4 left-4 w-64 h-48">
+                <div className="flex meeting-container">
+                    <div className={`flex flex-col w-full bg-grey-900`}>
+                        <div className="flex bg-grey-900">
+                            {/* Main content area */}
+                            <div className="h-[90vh] w-full relative"> {/* Added relative positioning */}
+                                {videoVisible && (
+                                    connected ? (
                                         <VideoBox
                                             mediaSource={remoteStream}
-                                            displayName="Other Person"
+                                            displayName={"Other guy"}
                                             videoOn={remoteVideoEnabled}
                                             audioOn={isOtherAudioOn}
                                             flipHorizontal={true}
-                                            collapsible={true}
                                         />
+                                    ) : (
+                                        <div className="flex flex-col justify-center items-center h-full w-full text-white">
+                                            <p>No one is connected.</p>
+                                            <p>Invite others using this link:</p>
+                                            <p>
+                                                <a href={`http://localhost:3000/meetings/${meetingId}`} className="text-blue-500 underline">
+                                                    http://localhost:3000/meetings/{meetingId}
+                                                </a>
+                                            </p>
+                                        </div>
+                                    )
+                                )}
+                                {/* Render CodeEditor and Whiteboard in the same space as video */}
+                                {editorVisible && (
+                                    <div className="absolute inset-0">
+                                        <CodeEditor />
+                                    </div>
+                                )}
+                                {whiteboardVisible && (
+                                    <div className="absolute inset-0">
+                                        <Whiteboard roomId={meetingId} />
                                     </div>
                                 )}
                             </div>
-                           </div>
-           
-                           {/* Navigation bar */}
-                           <div className="bg-gray-700 rounded-xl px-4 flex self-end justify-between items-center w-full shadow-md">
-                               <div className="flex">
-                                   <NavBarButton
-                                       icon={!isAudioOn ? FaMicrophoneSlash : FaMicrophone}
-                                       text={"Audio"}
-                                       onClick={toggleAudio}
-                                   />
-                                   <NavBarButton
-                                       icon={!isCameraOn ? FaVideoSlash : FaVideo}
-                                       text={"Video"}
-                                       onClick={toggleVideo}
-                                   />
-                               </div>
-                               <div className="flex">
-                                   <NavBarButton icon={FaCommentDots} text="Chat" onClick={toggleChat} />
-                                   <NavBarButton icon={FaUser} text="Meeting" onClick={toggleMeeting} />
-                                   <NavBarButton icon={FaPen} text="Whiteboard" onClick={toggleWhiteboard} />
-                                   <NavBarButton icon={FaCode} text="Code" onClick={toggleEditor} />
-                                   <NavBarButton icon={MdScreenShare} text="Screenshare" onClick={toggleScreenshare} />
-                               </div>
-                               <div className="flex">
-                                   <NavBarButton icon={FaDoorOpen} text="Leave" onClick={handleLeave} color={'red-500'} />
-                               </div>
-           
-                           </div>
-                       </div>
-           
-                       {/* Chat sidebar */}
-                       <div className={`transition-all duration-300 ${chatVisible ? 'w-3/10' : 'w-0'} h-full bg-gray-900 overflow-y-auto`}>
-                           {chatVisible && <Chat meetingId={meetingId} ref={chatRef} />}
-                       </div>
-                   </div>
+
+                            {/* PiP video box */}
+                            <div className="absolute top-20 right-4 w-64 h-48">
+                                <VideoBox
+                                    mediaSource={videoVisible ? userStream : remoteStream}
+                                    displayName={videoVisible ? "You" : "Other guy"}
+                                    videoOn={videoVisible ? isCameraOn : remoteVideoEnabled}
+                                    audioOn={videoVisible ? false : isOtherAudioOn}
+                                    flipHorizontal={true}
+                                    collapsible={true}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Navigation bar */}
+                        <div className="bg-gray-700 rounded-xl px-4 flex self-end justify-between items-center w-full shadow-md">
+                            <div className="flex">
+                                <NavBarButton
+                                    icon={!isAudioOn ? FaMicrophoneSlash : FaMicrophone}
+                                    text={"Audio"}
+                                    onClick={toggleAudio}
+                                />
+                                <NavBarButton
+                                    icon={!isCameraOn ? FaVideoSlash : FaVideo}
+                                    text={"Video"}
+                                    onClick={toggleVideo}
+                                />
+                            </div>
+                            <div className="flex">
+                                <NavBarButton icon={FaCommentDots} text="Chat" onClick={toggleChat} />
+                                <NavBarButton icon={FaUser} text="Meeting" onClick={toggleMeeting} />
+                                <NavBarButton icon={FaPen} text="Whiteboard" onClick={toggleWhiteboard} />
+                                <NavBarButton icon={FaCode} text="Code" onClick={toggleEditor} />
+                                <NavBarButton icon={MdScreenShare} text="Screenshare" onClick={toggleScreenshare} />
+                            </div>
+                            <div className="flex">
+                                <NavBarButton icon={FaDoorOpen} text="Leave" onClick={handleLeave} color={'red-500'} />
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* Chat sidebar */}
+                    <div className={`transition-all duration-300 ${chatVisible ? 'w-3/10' : 'w-0'} h-full bg-gray-900 overflow-y-auto`}>
+                        {chatVisible && <Chat meetingId={meetingId} ref={chatRef} />}
+                    </div>
+                </div>
 
             ) : (
-                <Navigate to="/login"/>
+                <Navigate to="/login" />
             )}
         </>
     );
